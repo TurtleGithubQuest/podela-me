@@ -9,3 +9,10 @@ workspace = true
 [dependencies]
 axum = { workspace = true }
 clap = { workspace = true }
+ulid = { workspace = true }
+sqlx = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+log4rs = { workspace = true }
+uuid = "1.11.0"
+argon2 = "0.5.3"

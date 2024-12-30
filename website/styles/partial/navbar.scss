@@ -1,0 +1,151 @@
+@import "../colors";
+
+$transition-speed: 0.3s;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+}
+
+// Navbar Styles
+.navbar {
+  background: $background-2;
+  height: 80px;
+  @include flex-center;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+
+  &__container {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 50px;
+    @include flex-center;
+    justify-content: space-between;
+    height: 80px;
+  }
+
+  &__logo {
+    color: $secondary;
+    font-size: 2rem;
+    text-decoration: none;
+    font-weight: bold;
+
+    &:hover {
+      color: $secondary-hover;
+      transition: $transition-speed;
+    }
+  }
+
+  &__menu {
+    @include flex-center;
+    list-style: none;
+    text-align: center;
+  }
+
+  &__item {
+    height: 80px;
+    padding: 0 1rem;
+    @include flex-center;
+  }
+
+  &__link {
+    color: $secondary;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: 500;
+
+    &:hover {
+      color: $secondary-hover;
+      transition: $transition-speed;
+    }
+  }
+
+  &__btn {
+    @include flex-center;
+    padding: 0 1rem;
+  }
+
+  &__toggle {
+    display: none;
+  }
+}
+
+.button {
+  @include flex-center;
+  padding: 10px 20px;
+  background-color: $secondary-hover;
+  color: $text;
+  border: none;
+  outline: none;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: 500;
+
+  &:hover {
+    background: darken($secondary-hover, 10%);
+    color: $text-hover;
+    transition: $transition-speed;
+  }
+}
+
+@media screen and (max-width: 960px) {
+  .navbar {
+    &__container {
+      padding: 0 30px;
+    }
+
+    &__menu {
+      display: none;
+      position: absolute;
+      top: 80px;
+      left: -100%;
+      width: 100%;
+      height: 90vh;
+      flex-direction: column;
+      background: $primary;
+      transition: $transition-speed;
+
+      &.active {
+        left: 0;
+        display: flex;
+      }
+    }
+
+    &__item {
+      width: 100%;
+      padding: 2rem 0;
+    }
+
+    &__toggle {
+      display: block;
+      cursor: pointer;
+
+      .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background: $secondary;
+        transition: $transition-speed;
+      }
+    }
+  }
+}
+
+// Hamburger Animation
+.navbar__toggle.active {
+  .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+}

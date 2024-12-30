@@ -15,6 +15,9 @@ pub enum DockerError {
     #[error("Failed to pull image: {0}")]
     PullError(String),
 
+    #[error("Failed to inspect container: {0}")]
+    InspectError(String),
+
     #[error("Failed to start container: {0}")]
     StartError(String),
 
@@ -61,7 +64,35 @@ impl Docker {
         Ok(())
     }
 
+    fn container_exists(&self) -> Result<bool, DockerError> {
+        let output = Command::new("docker")
+            .args(["container", "inspect", &self.name])
+            .output()?;
+
+        Ok(output.status.success())
+    }
+
+    fn start_existing(&self) -> Result<(), DockerError> {
+        let output = Command::new("docker")
+            .args(["start", &self.name])
+            .output()?;
+
+        if !output.status.success() {
+            return Err(DockerError::StartError(
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn start(&self) -> Result<(), DockerError> {
+        self.check_docker_running()?;
+
+        if self.container_exists()? {
+            return self.start_existing();
+        }
+
         self.setup_image()?;
         let db_credentials = common::args::CliArgs::parse().db;
         let output = Command::new("docker")

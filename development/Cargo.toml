@@ -11,3 +11,5 @@ common = { path = "../common" }
 tokio = { workspace = true }
 thiserror = { workspace = true }
 clap = { workspace = true }
+notify = "7.0.0"
+grass = "0.13.4"

@@ -20,6 +20,7 @@ tmp/
 # Build output directories
 /dist
 /build
+**/assets
 
 # Environment files (potentially containing secrets)
 .env

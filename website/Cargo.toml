@@ -8,7 +8,13 @@ workspace = true
 
 [dependencies]
 common = { path = "../common" }
+rinja_axum = { path = "../rinja_axum" }
 axum = { workspace = true }
 tokio = { workspace = true }
 clap = { workspace = true }
 sqlx = { workspace = true }
+
+rinja = { git = "https://github.com/rinja-rs/rinja.git", branch = "master" }
+axum-macros = "0.4.2"
+axum-core = "0.5.0-rc.1"
+tower-http = { version = "0.6.2", features = ["fs"] }

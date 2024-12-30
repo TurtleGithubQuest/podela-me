@@ -1,0 +1,9 @@
+{% extends "index.html" %}
+
+{% block content %}
+{% if let Some(user) = user %}
+{{ user.name }}
+{% else %}
+User not found
+{% endif %}
+{% endblock %}

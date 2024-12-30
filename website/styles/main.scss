@@ -1,0 +1,6 @@
+@use "./partial/navbar";
+@use "colors" as *;
+
+body {
+  background-image: linear-gradient(to right, $background, $background-2);
+}

@@ -1,4 +1,12 @@
+use crate::{args, PodelError};
 use clap::Parser;
+use log::{info, warn};
+use sqlx::migrate::{MigrateError, Migrator};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Executor, PgPool, Pool, Postgres};
+use std::time::Duration;
+
+pub mod user;
 
 #[derive(Parser, Debug)]
 pub struct DbCredentials {
@@ -12,4 +20,42 @@ pub struct DbCredentials {
     pub password: String,
     #[clap(long, env = "DB_NAME", default_value = "development_db")]
     pub name: String,
+}
+
+static MIGRATOR: Migrator = sqlx::migrate!(".\\migrations");
+
+pub async fn create_pool() -> Result<Pool<Postgres>, PodelError> {
+    let args = args::CliArgs::parse();
+    let db_credentials = &args.db;
+
+    let db_connection_str = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        db_credentials.username,
+        db_credentials.password,
+        db_credentials.host,
+        db_credentials.port,
+        db_credentials.name
+    );
+
+    Ok(PgPoolOptions::new()
+        .max_connections(5)
+        .acquire_timeout(Duration::from_secs(3))
+        .connect(&db_connection_str)
+        .await
+        .expect("can't connect to database"))
+}
+
+pub async fn migrate(pool: &PgPool) -> Result<(), MigrateError> {
+    info!("Running database migrations...");
+
+    match MIGRATOR.run(pool).await {
+        Ok(_) => {
+            info!("Database migrations completed successfully!");
+            Ok(())
+        }
+        Err(e) => {
+            warn!("Migration error: {}", e);
+            Err(e)
+        }
+    }
 }

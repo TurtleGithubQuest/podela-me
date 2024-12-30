@@ -1,41 +1,53 @@
+use crate::page::{index, user, WebData};
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::Router;
 use clap::Parser;
-use common::args;
-use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::time::Duration;
+use common::database::{create_pool, migrate};
+use common::PodelError;
+use sqlx::postgres::PgPool;
 use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
+
+pub mod page;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub data: WebData<'static>,
+    pub pool: PgPool,
+}
+
+impl AppState {
+    fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            data: WebData {
+                title: "Podela.me",
+                visitors: 0,
+            },
+        }
+    }
+}
 
 #[tokio::main]
-async fn main() {
-    let args = args::CliArgs::parse();
-    let db_credentials = &args.db;
+async fn main() -> Result<(), PodelError> {
+    let pool = create_pool().await?;
 
-    let db_connection_str = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        db_credentials.username,
-        db_credentials.password,
-        db_credentials.host,
-        db_credentials.port,
-        db_credentials.name
-    );
+    migrate(&pool).await.expect("Database migration failed");
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .acquire_timeout(Duration::from_secs(3))
-        .connect(&db_connection_str)
-        .await
-        .expect("can't connect to database");
+    let state = AppState::new(pool);
 
     let app = Router::new()
-        .route("/", get(using_connection_extractor))
-        .with_state(pool);
+        .route("/", get(index::get))
+        .route("/user/{id}", get(user::get_profile))
+        .with_state(state)
+        .nest_service("/assets", ServeDir::new("assets"));
 
     let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+    Ok(())
 }
 
 struct DatabaseConnection(sqlx::pool::PoolConnection<sqlx::Postgres>);

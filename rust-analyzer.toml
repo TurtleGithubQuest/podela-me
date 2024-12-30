@@ -1,0 +1,15 @@
+[workspace]
+rustfmt.enable = true
+clippy.enable = true
+
+[check]
+command = "clippy"
+arguments = [
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-W",
+    "clippy::pedantic",
+    "-W",
+    "clippy::nursery"
+]

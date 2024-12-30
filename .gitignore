@@ -1,0 +1,49 @@
+/target
+
+# Random temporary files
+.tmp/
+tmp/
+
+#
+.aider*
+
+# Workspace-specific
+.cargo/
+
+# Backup files
+*.bak
+*.gho
+*.ori
+*.orig
+*.tmp
+
+# Build output directories
+/dist
+/build
+
+# Environment files (potentially containing secrets)
+.env
+.env.*
+
+# Asset compilation cache
+.asset-cache/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.code-workspace
+.fleet/
+
+# Rust-specific ignores
+**/target/
+**/*.rs.bk
+*.pdb
+
+# Dependency directories
+/vendor
+**/vendor/
+
+# Temporary files
+*~
+.*.swp
+.DS_Store

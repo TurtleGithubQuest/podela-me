@@ -1,0 +1,13 @@
+[package]
+name = "development"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+common = { path = "../common" }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+clap = { workspace = true }

@@ -1,0 +1,35 @@
+# Pedantic and strict linting
+cognitive-complexity-threshold = 30
+too-many-arguments-threshold = 8
+max-fn-params = 6
+
+# Performance and code quality
+# Warn about inefficient collections or unnecessary allocations
+warn-on-all-wildcard-imports = true
+
+# Enum and match statement configurations
+enum-variant-name-threshold = 40
+match-arm-threshold = 6
+
+# Allow some game-specific patterns
+avoid-breaking-exported-api = false
+
+# Performance-critical sections
+trivial-copy-size-limit = 256
+type-complexity-threshold = 250
+
+# Naming conventions
+single-char-lifetime-name = false
+
+# Specific lint configurations
+must-use-annotation = "must_use"
+
+# Allow some flexibility in game logic
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+
+# Ignore certain lints in specific scenarios
+ignore-lint = [
+    "redundant_clone", # Sometimes needed for ECS or game state
+    "needless_pass_by_value", # Can be more readable in some cases
+]

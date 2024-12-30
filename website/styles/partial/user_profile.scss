@@ -1,0 +1,156 @@
+@use '../colors' as *;
+
+.profile-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: $background-2;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba($border, 0.1);
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  background-color: $secondary;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: $background;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.profile-info {
+  flex: 1;
+
+  .profile-name {
+    color: $primary;
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .profile-email {
+    color: $text;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      color: $secondary;
+    }
+  }
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.detail-card {
+  background-color: rgba($secondary, 0.1);
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  .detail-label {
+    color: $text;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .detail-value {
+    color: $primary;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .id-value {
+    font-family: monospace;
+    font-size: 0.9rem;
+    word-break: keep-all;
+  }
+}
+
+.admin-badge, .user-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.admin-badge {
+  background-color: $accent;
+  color: $background;
+}
+
+.user-badge {
+  background-color: $secondary;
+  color: $background;
+}
+
+.not-found {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: $text;
+
+  i {
+    font-size: 4rem;
+    color: $secondary;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    color: $primary;
+    margin: 0 0 1rem 0;
+  }
+
+  p {
+    color: $text;
+    margin: 0;
+  }
+}
+
+// Media Queries
+@media (max-width: 600px) {
+  .profile-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .profile-avatar {
+    margin: 0 auto;
+  }
+
+  .profile-info {
+    .profile-name {
+      font-size: 1.5rem;
+    }
+  }
+}

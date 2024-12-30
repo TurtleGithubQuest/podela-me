@@ -41,8 +41,7 @@ pub async fn create_pool() -> Result<Pool<Postgres>, PodelError> {
         .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
         .connect(&db_connection_str)
-        .await
-        .expect("can't connect to database"))
+        .await?)
 }
 
 pub async fn migrate(pool: &PgPool) -> Result<(), MigrateError> {

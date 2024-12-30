@@ -1,7 +1,8 @@
 use crate::docker::Docker;
-use common::database::create_pool;
+use common::database::{create_pool, migrate};
 use common::PodelError;
 use notify::{Error, RecursiveMode, Watcher};
+use sqlx::{Pool, Postgres};
 use std::fs;
 use std::path::Path;
 use tokio::process;
@@ -12,6 +13,9 @@ pub mod docker;
 async fn main() -> Result<(), PodelError> {
     let postgres = Docker::new("podela_me_dev_postgres");
     postgres.start().unwrap();
+    let pool = create_pool().await?;
+    migrate(&pool).await.expect("Database migration failed");
+    setup_dev(&pool).await?;
 
     let website_task = async {
         let mut website_process = process::Command::new("cargo")
@@ -29,14 +33,19 @@ async fn main() -> Result<(), PodelError> {
 
     let scss_task = watch_scss();
 
-    let _ = tokio::join!(website_task, scss_task, setup_dev());
+    let _ = tokio::join!(website_task, scss_task);
     Ok(())
 }
 
-async fn setup_dev() -> Result<(), PodelError> {
-    let admin_user = common::database::user::User::new("admin", "test@example.com", "admin", true)?;
-    let pool = create_pool().await?;
-    admin_user.register(&pool).await?;
+async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
+    let _ = common::database::user::User::register(
+        &pool,
+        "admin",
+        Some("test@example.com"),
+        "admin",
+        true,
+    )
+    .await;
     Ok(())
 }
 

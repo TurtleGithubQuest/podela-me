@@ -2,8 +2,54 @@
 
 {% block content %}
 {% if let Some(user) = user %}
-{{ user.name }}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {{ user.name.chars().next().unwrap_or('U') }}
+        </div>
+        <div class="profile-info">
+            <h1 class="profile-name">{{ user.name }}</h1>
+            {% if let Some(email) = user.email %}
+            <p class="profile-email">
+                <i class="fas fa-envelope"></i>
+                {{ email }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="profile-details">
+        <div class="detail-card">
+            <div class="detail-label">{{ "member-since"|fluent("en-US") }}</div>
+            <div class="detail-value">
+                {{ user.created_at.format("%B %d, %Y") }}
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-label">Account Type</div>
+            <div class="detail-value">
+                {% if user.admin %}
+                <span class="admin-badge">Administrator</span>
+                {% else %}
+                <span class="user-badge">Regular User</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-label">User ID</div>
+            <div class="detail-value id-value">
+                {{ user.id }}
+            </div>
+        </div>
+    </div>
+</div>
 {% else %}
-User not found
+<div class="not-found">
+    <i class="fas fa-user-slash"></i>
+    <h2>User Not Found</h2>
+    <p>The requested user profile could not be found.</p>
+</div>
 {% endif %}
 {% endblock %}

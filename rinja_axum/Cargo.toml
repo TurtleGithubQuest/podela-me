@@ -7,6 +7,9 @@ edition = "2021"
 workspace = true
 
 [dependencies]
+fluent-templates = { workspace = true }
+unic-langid = { workspace = true }
+
 rinja = { git = "https://github.com/rinja-rs/rinja.git", branch = "master" }
 axum-core = "0.5.0-rc.1"
 http = "1.2.0"

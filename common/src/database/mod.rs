@@ -3,7 +3,7 @@ use clap::Parser;
 use log::{info, warn};
 use sqlx::migrate::{MigrateError, Migrator};
 use sqlx::postgres::PgPoolOptions;
-use sqlx::{Executor, PgPool, Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
 use std::time::Duration;
 
 pub mod user;

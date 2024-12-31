@@ -1,6 +1,6 @@
 <nav class="navbar">
     <div class="navbar__container">
-        <a class="navbar__logo" href="#">{{data.title}}</a>
+        <a class="navbar__logo" href="#">{{title}}</a>
 
         <div class="navbar__toggle" id="mobile-menu">
             <span class="bar"></span>
@@ -16,7 +16,18 @@
                 <a class="navbar__link" href="#">About</a>
             </li>
             <li class="navbar__btn">
-                <a class="button" href="#">Sign Up</a>
+                {% if let Some(user) = user %}
+                <span>{{ user.name }}</span>
+                <a class="button" href="#">Logout</a>
+                {% else %}
+                <button class="button"
+                        hx-get="/auth"
+                        hx-swap="beforeend"
+                        hx-target="body"
+                        hx-trigger="click">
+                    Sign Up
+                </button>
+                {% endif %}
             </li>
         </ul>
     </div>

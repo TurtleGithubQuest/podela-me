@@ -1,5 +1,5 @@
-pub use axum_core;
-use axum_core::response::{IntoResponse, Response};
+pub use axum_login::axum;
+use axum_login::axum::response::{IntoResponse, Response};
 pub use rinja::*;
 
 pub mod filters;
@@ -8,7 +8,7 @@ pub mod filters;
 #[must_use]
 pub fn into_response<T: ?Sized + rinja::Template>(tmpl: &T) -> Response {
     try_into_response(tmpl)
-        .map_err(|err| axum_core::response::ErrorResponse::from(err.to_string()))
+        .map_err(|err| axum_login::axum::response::ErrorResponse::from(err.to_string()))
         .into_response()
 }
 

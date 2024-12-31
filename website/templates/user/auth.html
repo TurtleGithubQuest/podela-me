@@ -1,0 +1,35 @@
+<div class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button class="close-button"
+                    hx-get="/close-modal"
+                    hx-swap="outerHTML"
+                    hx-target=".modal"
+                    hx-trigger="click">×
+            </button>
+        </div>
+        <div class="modal-body">
+            <form hx-post="/auth" hx-target=".modal">
+                <div class="form-group">
+                    <div class="auth-toggle">
+                        <label class="switch">
+                            <input name="authentication" type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input name="username" placeholder='{{ "username"|fluent(user_language) }}' required type="text">
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input name="password" placeholder='{{ "password"|fluent(user_language) }}' required type="password">
+                    </label>
+                </div>
+                <button class="submit-btn" type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+</div>

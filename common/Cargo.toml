@@ -8,6 +8,7 @@ workspace = true
 
 [dependencies]
 axum = { workspace = true }
+axum-login = { workspace = true }
 clap = { workspace = true }
 ulid = { workspace = true }
 sqlx = { workspace = true }
@@ -16,6 +17,9 @@ thiserror = { workspace = true }
 log4rs = { workspace = true }
 chrono = { workspace = true }
 unic-langid = { workspace = true }
+fluent-templates = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
 
 uuid = "1.11.0"
-argon2 = "0.5.3"
+argon2 = { version = "0.5.3", features = ["std"] }

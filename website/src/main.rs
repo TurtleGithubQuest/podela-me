@@ -1,34 +1,31 @@
-use crate::page::{index, user, WebData};
-use axum::extract::{FromRef, FromRequestParts};
-use axum::http::request::Parts;
-use axum::http::StatusCode;
-use axum::routing::get;
-use axum::Router;
-use clap::Parser;
+use crate::page::{index, user};
+use axum_login::axum::{
+    extract::{FromRef, FromRequestParts},
+    http::StatusCode,
+    routing::get,
+    {Router, ServiceExt},
+};
+use axum_login::tower_sessions::cookie::time::Duration;
+use axum_login::tower_sessions::{Expiry, SessionManagerLayer};
+use axum_login::AuthManagerLayerBuilder;
 use common::database::{create_pool, migrate};
-use common::PodelError;
-use sqlx::postgres::PgPool;
+use common::{AppState, PodelError};
+use fluent_templates::LanguageIdentifier;
+use lazy_static::lazy_static;
+use std::str::FromStr;
 use tokio::net::TcpListener;
+use tokio::signal;
+use tokio::task::AbortHandle;
 use tower_http::services::ServeDir;
+use tower_sessions::cookie::Key;
+use tower_sessions::ExpiredDeletion;
+use tower_sessions_sqlx_store::PostgresStore;
 
 pub mod page;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub data: WebData<'static>,
-    pub pool: PgPool,
-}
-
-impl AppState {
-    fn new(pool: PgPool) -> Self {
-        Self {
-            pool,
-            data: WebData {
-                title: "Podela.me",
-                visitors: 0,
-            },
-        }
-    }
+lazy_static! {
+    static ref DEFAULT_LANGUAGE: LanguageIdentifier =
+        LanguageIdentifier::from_str("en-US").expect("??");
 }
 
 #[tokio::main]
@@ -37,44 +34,89 @@ async fn main() -> Result<(), PodelError> {
 
     migrate(&pool).await.expect("Database migration failed");
 
+    let session_store = PostgresStore::new(pool.clone());
+    session_store.migrate().await?;
+
+    let deletion_task = tokio::task::spawn(
+        session_store
+            .clone()
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+    );
+
+    let key = Key::generate();
+
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnInactivity(Duration::days(1)))
+        .with_signed(key);
+
     let state = AppState::new(pool);
+    let auth_layer = AuthManagerLayerBuilder::new(state, session_layer).build();
 
     let app = Router::new()
         .route("/", get(index::get))
-        .route("/user/{id}", get(user::get_profile))
-        .with_state(state)
-        .nest_service("/assets", ServeDir::new("assets"));
+        .merge(user::router())
+        .nest_service("/assets", ServeDir::new("assets"))
+        .layer(auth_layer);
 
-    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3000").await?;
+
+    axum::serve(listener, app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
+        .await?;
+
+    deletion_task.await?.unwrap();
+
     Ok(())
 }
 
-struct DatabaseConnection(sqlx::pool::PoolConnection<sqlx::Postgres>);
+#[macro_export]
+macro_rules! extend_with_app_state {
+    (
+        $(
+            $(#[$struct_meta:meta])*
+            $vis:vis struct $name:ident $(<$life:lifetime>)? {
+                $(
+                    $(#[$field_meta:meta])*
+                    $field_vis:vis $field_name:ident: $field_type:ty
+                ),*
+                $(,)?
+            }
+        )+
+    ) => {
+        use crate::DEFAULT_LANGUAGE;
+        use fluent_templates::LanguageIdentifier;
+        use std::str::FromStr;
+        use rinja_axum::filters as filters;
 
-impl<S> FromRequestParts<S> for DatabaseConnection
-where
-    PgPool: FromRef<S>,
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, String);
+        $(
+            #[allow(dead_code)]
+            #[derive(Template)]
+            $(#[$struct_meta])*
+            $vis struct $name<'a> {
+                $(
+                    $(#[$field_meta])*
+                    $field_vis $field_name: $field_type,
+                )*
+                pub title: &'a str,
+                pub visitors: u64,
+                pub user: Option<common::database::user::User>,
+                pub user_language: fluent_templates::LanguageIdentifier,
+            }
 
-    async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let pool = PgPool::from_ref(state);
-
-        let conn = pool.acquire().await.map_err(internal_error)?;
-
-        Ok(Self(conn))
-    }
-}
-
-async fn using_connection_extractor(
-    DatabaseConnection(mut conn): DatabaseConnection,
-) -> Result<String, (StatusCode, String)> {
-    sqlx::query_scalar("select 'hello world from pg'")
-        .fetch_one(&mut *conn)
-        .await
-        .map_err(internal_error)
+            impl<'a> $name<'a> {
+                pub fn from_app_state(auth_session: &'a AuthSession, $($field_name: $field_type,)*) -> Self {
+                    Self {
+                        $($field_name,)*
+                        title: auth_session.backend.title,
+                        visitors: auth_session.backend.visitors,
+                        user_language: auth_session.user.as_ref().map(|user| LanguageIdentifier::from_str(&user.language).ok()).flatten().unwrap_or(DEFAULT_LANGUAGE.clone()),
+                        user: auth_session.user.clone(),
+                    }
+                }
+            }
+        )+
+    };
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error` response.
@@ -83,4 +125,28 @@ where
     E: std::error::Error,
 {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+}
+
+async fn shutdown_signal(deletion_task_abort_handle: AbortHandle) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { deletion_task_abort_handle.abort() },
+        _ = terminate => { deletion_task_abort_handle.abort() },
+    }
 }

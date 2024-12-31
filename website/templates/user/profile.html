@@ -1,15 +1,15 @@
 {% extends "index.html" %}
 
 {% block content %}
-{% if let Some(user) = user %}
+{% if let Some(profile) = profile %}
 <div class="profile-container">
     <div class="profile-header">
         <div class="profile-avatar">
-            {{ user.name.chars().next().unwrap_or('U') }}
+            {{ profile.name.chars().next().unwrap_or('U') }}
         </div>
         <div class="profile-info">
-            <h1 class="profile-name">{{ user.name }}</h1>
-            {% if let Some(email) = user.email %}
+            <h1 class="profile-name">{{ profile.name }}</h1>
+            {% if let Some(email) = profile.email %}
             <p class="profile-email">
                 <i class="fas fa-envelope"></i>
                 {{ email }}
@@ -20,16 +20,16 @@
 
     <div class="profile-details">
         <div class="detail-card">
-            <div class="detail-label">{{ "member-since"|fluent("en-US") }}</div>
+            <div class="detail-label">{{ "member-since"|fluent(user_language) }}</div>
             <div class="detail-value">
-                {{ user.created_at.format("%B %d, %Y") }}
+                {{ profile.created_at.format("%B %d, %Y") }}
             </div>
         </div>
 
         <div class="detail-card">
             <div class="detail-label">Account Type</div>
             <div class="detail-value">
-                {% if user.admin %}
+                {% if profile.admin %}
                 <span class="admin-badge">Administrator</span>
                 {% else %}
                 <span class="user-badge">Regular User</span>
@@ -40,7 +40,7 @@
         <div class="detail-card">
             <div class="detail-label">User ID</div>
             <div class="detail-value id-value">
-                {{ user.id }}
+                {{ profile.id }}
             </div>
         </div>
     </div>

@@ -3,16 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>{{title}}</title>
-    <style>{
-    %
-    include
-    "../assets/main.css"
-    %
-    }</style>
-    <script>{%
-        include
-        "../assets/htmx.min.js" %
-    }</script>
+    <style>{% include "../assets/main.css" %}</style>
+    <script>{% include "../assets/htmx.min.js" %}</script>
 </head>
 <body>
 {% include "navbar.html" %}

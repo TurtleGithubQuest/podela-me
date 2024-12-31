@@ -7,17 +7,16 @@ use axum_login::axum::{
 use common::database::user::User;
 use common::AuthSession;
 use rinja_axum::axum::response::{IntoResponse, Response};
-use rinja_axum::Template;
 use rinja_axum::*;
 
 extend_with_app_state! {
     #[template(path = "user/profile.html")]
     struct UserProfileTemplate {
         profile: Option<User>,
-    }
+    };
 
     #[template(path = "user/auth.html")]
-    struct UserAuthTemplate {}
+    struct UserAuthTemplate {};
 }
 
 pub fn router() -> Router<()> {
@@ -25,6 +24,7 @@ pub fn router() -> Router<()> {
         .route("/user/:id", get(get::profile))
         .route("/auth", get(get::auth))
         .route("/auth", post(post::auth))
+        .route("/auth/logout", post(post::logout))
 }
 
 mod get {
@@ -55,6 +55,12 @@ mod post {
     use axum::Form;
     use common::database::user::Credentials;
 
+    pub(crate) async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
+        auth_session.logout().await
+            .map(|_| StatusCode::OK)
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
     pub(crate) async fn auth(
         mut auth_session: AuthSession,
         Form(creds): Form<Credentials>,
@@ -64,11 +70,10 @@ mod post {
         } else {
             register(auth_session, creds).await
         }
-        .into_response()
     }
 
     async fn register(mut auth_session: AuthSession, creds: Credentials) -> StatusCode {
-        StatusCode::OK
+        todo!()
     }
 
     async fn login(mut auth_session: AuthSession, creds: Credentials) -> StatusCode {

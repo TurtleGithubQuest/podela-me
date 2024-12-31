@@ -21,6 +21,7 @@ tmp/
 /dist
 /build
 **/assets
+logs
 
 # Environment files (potentially containing secrets)
 .env

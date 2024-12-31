@@ -1,4 +1,4 @@
-use crate::page::{index, user};
+use crate::page::{index, partials, user};
 use axum_login::axum::{
     extract::{FromRef, FromRequestParts},
     http::StatusCode,
@@ -30,9 +30,10 @@ lazy_static! {
 
 #[tokio::main]
 async fn main() -> Result<(), PodelError> {
+    common::load_config().await;
     let pool = create_pool().await?;
 
-    migrate(&pool).await.expect("Database migration failed");
+    migrate(&pool).await.unwrap();
 
     let session_store = PostgresStore::new(pool.clone());
     session_store.migrate().await?;
@@ -56,6 +57,7 @@ async fn main() -> Result<(), PodelError> {
     let app = Router::new()
         .route("/", get(index::get))
         .merge(user::router())
+        .merge(partials::router())
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(auth_layer);
 
@@ -81,12 +83,13 @@ macro_rules! extend_with_app_state {
                     $field_vis:vis $field_name:ident: $field_type:ty
                 ),*
                 $(,)?
-            }
-        )+
+            };
+        )*
     ) => {
         use crate::DEFAULT_LANGUAGE;
         use fluent_templates::LanguageIdentifier;
         use std::str::FromStr;
+        use rinja_axum::Template;
         use rinja_axum::filters as filters;
 
         $(
@@ -101,21 +104,27 @@ macro_rules! extend_with_app_state {
                 pub title: &'a str,
                 pub visitors: u64,
                 pub user: Option<common::database::user::User>,
-                pub user_language: fluent_templates::LanguageIdentifier,
+                pub user_language: LanguageIdentifier,
             }
 
             impl<'a> $name<'a> {
-                pub fn from_app_state(auth_session: &'a AuthSession, $($field_name: $field_type,)*) -> Self {
+                pub fn from_app_state(
+                    auth_session: &'a common::AuthSession, $( $field_name: $field_type, )*
+                ) -> Self {
                     Self {
-                        $($field_name,)*
+                        $( $field_name, )*
                         title: auth_session.backend.title,
                         visitors: auth_session.backend.visitors,
-                        user_language: auth_session.user.as_ref().map(|user| LanguageIdentifier::from_str(&user.language).ok()).flatten().unwrap_or(DEFAULT_LANGUAGE.clone()),
+                        user_language: auth_session
+                            .user
+                            .as_ref()
+                            .and_then(|user| LanguageIdentifier::from_str(&user.language).ok())
+                            .unwrap_or_else(|| DEFAULT_LANGUAGE.clone()),
                         user: auth_session.user.clone(),
                     }
                 }
             }
-        )+
+        )*
     };
 }
 

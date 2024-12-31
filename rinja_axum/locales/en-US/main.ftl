@@ -4,3 +4,4 @@ login = Login
 register = Register
 username = Username
 password = Password
+submit = Submit

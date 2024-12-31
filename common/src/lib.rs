@@ -1,7 +1,9 @@
 use crate::database::user::{verify_password, Credentials, User};
 use axum_login::axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
+use log::info;
 use sqlx::PgPool;
+use std::path::PathBuf;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -43,8 +45,6 @@ impl AppState {
             pool,
             title: "Podela.me",
             visitors: 0,
-            /*user: None,
-            user_language: LanguageIdentifier::from_str("en-US").unwrap(),*/
         }
     }
 }
@@ -82,3 +82,16 @@ impl AuthnBackend for AppState {
 }
 
 pub type AuthSession = axum_login::AuthSession<AppState>;
+
+pub async fn load_config() {
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("Failed to find workspace root")
+        .unwrap()
+        .to_owned();
+
+    let config_path = workspace_root.join("config").join("log4rs.yaml");
+
+    log4rs::init_file(config_path, Default::default()).unwrap();
+    info!("Config loaded");
+}

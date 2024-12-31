@@ -7,8 +7,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba($background-2, 0.85);
-  backdrop-filter: blur(5px);
+  background-color: rgba($background-2, 0.35);
+  backdrop-filter: blur(.15rem);
   z-index: 1000;
 
   &:not(:empty) {
@@ -26,10 +26,10 @@
   }
 
   .modal-header {
-    padding: 1.5rem;
+    padding: .2rem;
     border-bottom: 1px solid rgba($border, 0.1);
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
   }
 
@@ -37,6 +37,8 @@
     .switch {
       position: relative;
       display: inline-block;
+      left: 50%;
+      transform: translate(-50%, 0);
       width: 12.5rem;
       height: 2.5rem;
 

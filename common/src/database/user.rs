@@ -27,7 +27,7 @@ impl User {
             r#"
             SELECT id, name, language, email, is_admin, created_at, password_hash
             FROM auth.user
-            WHERE name = $1
+            WHERE id = $1 OR name = $1
         "#,
         )
         .bind(id.into())

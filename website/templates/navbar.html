@@ -1,6 +1,6 @@
-<nav class="navbar">
+<nav class="navbar" id="navbar" hx-trigger="refreshNav" hx-get="/partials/navbar" hx-swap="outerHTML" hx-target="this">
     <div class="navbar__container">
-        <a class="navbar__logo" href="#">{{title}}</a>
+        <a class="navbar__logo" href="/">{{title}}</a>
 
         <div class="navbar__toggle" id="mobile-menu">
             <span class="bar"></span>
@@ -17,8 +17,12 @@
             </li>
             <li class="navbar__btn">
                 {% if let Some(user) = user %}
-                <span>{{ user.name }}</span>
-                <a class="button" href="#">Logout</a>
+                <a href="/user/{{ user.id }}">{{ user.name }}</a>
+                <button class="button"
+                        hx-post="/auth/logout"
+                        hx-swap="none"
+                        hx-on::after-request="if(event.detail.successful) htmx.trigger('#navbar', 'refreshNav')">
+                    Logout</button>
                 {% else %}
                 <button class="button"
                         hx-get="/auth"

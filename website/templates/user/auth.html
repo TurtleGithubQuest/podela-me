@@ -1,15 +1,10 @@
-<div class="modal">
+<div class="modal" hx-on:click="if(event.target.classList.contains('modal')) this.remove()" hx-on::after-request="if(event.detail.successful) htmx.trigger('#navbar', 'refreshNav')">
     <div class="modal-content">
         <div class="modal-header">
-            <button class="close-button"
-                    hx-get="/close-modal"
-                    hx-swap="outerHTML"
-                    hx-target=".modal"
-                    hx-trigger="click">×
-            </button>
+            <button class="close-button" onclick="this.closest('.modal').remove()">×</button>
         </div>
         <div class="modal-body">
-            <form hx-post="/auth" hx-target=".modal">
+            <form hx-post="/auth" hx-target=".modal" hx-trigger="submit">
                 <div class="form-group">
                     <div class="auth-toggle">
                         <label class="switch">
@@ -20,15 +15,15 @@
                 </div>
                 <div class="form-group">
                     <label>
-                        <input name="username" placeholder='{{ "username"|fluent(user_language) }}' required type="text">
+                        <input name="username" autocomplete="username" placeholder='{{ "username"|fluent(user_language) }}' required type="text">
                     </label>
                 </div>
                 <div class="form-group">
                     <label>
-                        <input name="password" placeholder='{{ "password"|fluent(user_language) }}' required type="password">
+                        <input name="password" autocomplete="password" placeholder='{{ "password"|fluent(user_language) }}' required type="password">
                     </label>
                 </div>
-                <button class="submit-btn" type="submit">Submit</button>
+                <button class="submit-btn" type="submit">{{ "submit"|fluent(user_language) }}</button>
             </form>
         </div>
     </div>

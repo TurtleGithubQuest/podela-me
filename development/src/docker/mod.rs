@@ -1,6 +1,8 @@
 use clap::Parser;
 use std::process::Command;
+use std::time::Duration;
 use thiserror::Error;
+use tokio::time::sleep;
 
 pub struct Docker {
     name: String,
@@ -72,7 +74,7 @@ impl Docker {
         Ok(output.status.success())
     }
 
-    fn start_existing(&self) -> Result<(), DockerError> {
+    async fn start_existing(&self) -> Result<(), DockerError> {
         let output = Command::new("docker")
             .args(["start", &self.name])
             .output()?;
@@ -83,14 +85,15 @@ impl Docker {
             ));
         }
 
+        self.wait_for_postgres().await?;
         Ok(())
     }
 
-    pub fn start(&self) -> Result<(), DockerError> {
+    pub async fn start(&self) -> Result<(), DockerError> {
         self.check_docker_running()?;
 
         if self.container_exists()? {
-            return self.start_existing();
+            return self.start_existing().await;
         }
 
         self.setup_image()?;
@@ -119,7 +122,34 @@ impl Docker {
             ));
         }
 
+        self.wait_for_postgres().await?;
         Ok(())
+    }
+
+    async fn wait_for_postgres(&self) -> Result<(), DockerError> {
+        let max_attempts = 60;
+        let mut attempts = 0;
+
+        while attempts < max_attempts {
+            let output = Command::new("docker")
+                .args([
+                    "exec",
+                    &self.name,
+                    "pg_isready",
+                    "-U",
+                    &common::args::CliArgs::parse().db.username,
+                ])
+                .output()?;
+
+            if output.status.success() {
+                return Ok(());
+            }
+
+            attempts += 1;
+            sleep(Duration::from_millis(100 * (2_u64.pow(attempts)))).await;
+        }
+
+        Err(DockerError::StartError("PostgreSQL failed to become ready".into()))
     }
 
     pub fn stop(&self) -> Result<(), DockerError> {

@@ -1,0 +1,9 @@
+<div class="modal" onmouseleave="this.classList.add('disabled')" id="{{id}}">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button class="close-button" onclick="this.closest('.modal').classList.toggle('disabled')">×</button>
+            {% block modal_header %}{% endblock %}
+        </div>
+        <div class="modal-body">{% block modal_body %}{% endblock %}</div>
+    </div>
+</div>

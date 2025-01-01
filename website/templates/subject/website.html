@@ -32,7 +32,7 @@
                 {% if let Some(user) = organization.user %}
                 <div class="org-owner">
                     <i class="fas fa-user"></i>
-                    Owner: {{ user.name }}
+                    Owner: {% include "partials/user-link.html" %}
                 </div>
                 {% endif %}
             </div>

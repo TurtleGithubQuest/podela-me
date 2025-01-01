@@ -11,7 +11,7 @@
   backdrop-filter: blur(.15rem);
   z-index: 1000;
 
-  &:not(:empty) {
+  &:has(.modal-body > *) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,3 +153,23 @@
     }
   }
 }
+
+.user-link-wrapper {
+  display: inline-block;
+  z-index: 10;
+
+  .user-link {
+    position: absolute;
+    width: 12rem;
+
+    .modal {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 300px;
+      height: auto;
+      z-index: 20;
+    }
+  }
+}
+

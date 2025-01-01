@@ -7,9 +7,10 @@
     <script>{% include "../assets/htmx.min.js" %}</script>
 </head>
 <body>
-{% include "navbar.html" %}
+{% include "partials/navbar.html" %}
 
 <main>
+    <div id="modals"></div>
     {% block content %}{% endblock %}
 </main>
 

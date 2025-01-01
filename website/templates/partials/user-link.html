@@ -1,0 +1,13 @@
+{% let modal_id = format!("user-link-modal-{}", user.id) %}
+<div class="user-link-wrapper"
+     onmouseenter="document.querySelector('#{{ modal_id }}')?.classList.remove('disabled')"
+     onmouseleave="document.querySelector('#{{ modal_id }}')?.classList.add('disabled')">
+
+    <a href="/user/{{ user.id }}"
+       hx-get="/partials/modals/user/profile/{{ user.id }}"
+       hx-trigger="mouseenter once"
+       hx-target="#modals"
+       hx-swap="beforeend">
+        {{ user.name }}
+    </a>
+</div>

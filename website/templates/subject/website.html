@@ -1,0 +1,77 @@
+{% extends "index.html" %}
+
+{% block content %}
+{% if let Some(website) = subject %}
+<div class="website-container">
+    <div class="website-header">
+        <div class="website-icon">
+            {{ website.name.chars().next().unwrap_or('W') }}
+        </div>
+        <div class="website-info">
+            <h1 class="website-name">{{ website.name }}</h1>
+            <p class="website-domain">
+                <i class="fas fa-globe"></i>
+                {{ website.domain_name }}
+            </p>
+        </div>
+    </div>
+
+    <div class="website-details">
+        {% if let Some(description) = website.description %}
+        <div class="detail-card description">
+            <div class="detail-label">Description</div>
+            <div class="detail-value">{{ description }}</div>
+        </div>
+        {% endif %}
+
+        {% if let Some(organization) = website.organization %}
+        <div class="detail-card organization">
+            <div class="detail-label">Organization</div>
+            <div class="detail-value">
+                <span class="legal-form-badge">{{ organization.form }}</span>
+                {% if let Some(user) = organization.user %}
+                <div class="org-owner">
+                    <i class="fas fa-user"></i>
+                    Owner: {{ user.name }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% let karma = website.karma %}
+        <div class="karma-grid">
+            <div class="karma-card">
+                <div class="karma-value">{{ karma.amount }}</div>
+                <div class="karma-label">Total Karma</div>
+            </div>
+            <div class="karma-card">
+                <div class="karma-value">{{ karma.reviews }}</div>
+                <div class="karma-label">Reviews</div>
+            </div>
+            <div class="karma-card">
+                <div class="karma-value">{{ karma.age }}</div>
+                <div class="karma-label">Age Score</div>
+            </div>
+            <div class="karma-card">
+                <div class="karma-value">{{ karma.popularity }}</div>
+                <div class="karma-label">Popularity</div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-label">Website ID</div>
+            <div class="detail-value id-value">
+                {{ website.id }}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="not-found">
+    <i class="fas fa-globe-slash"></i>
+    <h2>Website Not Found</h2>
+    <p>The requested website could not be found.</p>
+</div>
+{% endif %}
+{% endblock %}

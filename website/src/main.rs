@@ -1,4 +1,4 @@
-use crate::page::{index, partials, user};
+use crate::page::{index, partials, subject, user};
 use axum_login::axum::{
     extract::{FromRef, FromRequestParts},
     http::StatusCode,
@@ -58,6 +58,7 @@ async fn main() -> Result<(), PodelError> {
         .route("/", get(index::get))
         .merge(user::router())
         .merge(partials::router())
+        .merge(subject::router())
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(auth_layer);
 
@@ -86,9 +87,11 @@ macro_rules! extend_with_app_state {
             };
         )*
     ) => {
+        #[allow(unused_imports)]
         use crate::DEFAULT_LANGUAGE;
         use fluent_templates::LanguageIdentifier;
         use std::str::FromStr;
+        use rinja_axum::axum::*;
         use rinja_axum::Template;
         use rinja_axum::filters as filters;
 

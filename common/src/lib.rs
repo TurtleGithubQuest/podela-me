@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::database::user::{verify_password, Credentials, User};
 use axum_login::axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
@@ -9,11 +11,6 @@ use thiserror::Error;
 
 pub mod args;
 pub mod database;
-
-pub struct Website {
-    url: String,
-    name: String,
-}
 
 #[derive(Error, Debug)]
 pub enum PodelError {

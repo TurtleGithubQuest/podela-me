@@ -1,8 +1,14 @@
 @use "./partial/navbar";
 @use "./partial/user_profile";
 @use "./partial/modal";
+@use "./partial/subject";
+@use "./miscellaneous/animations" as *;
 @use "colors" as *;
 
 body {
-  background-image: linear-gradient(to right, $background, $background-2);
+  background: linear-gradient(-45deg, $background, $background-2, darken($background, 12%), darken($background-2, 8%));
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
+  min-height: 100vh;
+  margin: 0;
 }

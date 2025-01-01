@@ -7,6 +7,10 @@ use sqlx::{PgPool, Pool, Postgres};
 use std::time::Duration;
 
 pub mod user;
+pub mod reviewable;
+
+pub type Ulid = String;
+static MIGRATOR: Migrator = sqlx::migrate!(".\\migrations");
 
 #[derive(Parser, Debug)]
 pub struct DbCredentials {
@@ -21,8 +25,6 @@ pub struct DbCredentials {
     #[clap(long, env = "DB_NAME", default_value = "development_db")]
     pub name: String,
 }
-
-static MIGRATOR: Migrator = sqlx::migrate!(".\\migrations");
 
 pub async fn create_pool() -> Result<Pool<Postgres>, PodelError> {
     let args = args::CliArgs::parse();

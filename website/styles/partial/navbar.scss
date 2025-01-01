@@ -9,12 +9,14 @@ $transition-speed: 0.3s;
 
 // Navbar Styles
 .navbar {
-  background: $background-2;
-  height: 80px;
+  background: rgba(darken($background-2, 5%), 0.95);
+  backdrop-filter: blur(10px);
+  height: 70px;
   @include flex-center;
   position: sticky;
   top: 0;
   z-index: 999;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
   &__container {
     width: 100%;
@@ -53,12 +55,15 @@ $transition-speed: 0.3s;
   &__link {
     color: $secondary;
     text-decoration: none;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all $transition-speed ease;
 
     &:hover {
       color: $secondary-hover;
-      transition: $transition-speed;
+      background: rgba($secondary, 0.1);
     }
   }
 
@@ -79,15 +84,24 @@ $transition-speed: 0.3s;
   color: $text;
   border: none;
   outline: none;
-  border-radius: 4px;
+  border-radius: 8px;
   text-decoration: none;
-  font-size: 1.2rem;
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all $transition-speed ease;
+  box-shadow: 0 2px 8px rgba($secondary-hover, 0.3);
 
   &:hover {
     background: darken($secondary-hover, 10%);
+    cursor: pointer;
     color: $text-hover;
-    transition: $transition-speed;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($secondary-hover, 0.4);
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba($secondary-hover, 0.2);
   }
 }
 

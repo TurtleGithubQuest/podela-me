@@ -29,7 +29,7 @@
         <div class="detail-card">
             <div class="detail-label">Account Type</div>
             <div class="detail-value">
-                {% if profile.admin %}
+                {% if profile.is_admin %}
                 <span class="admin-badge">Administrator</span>
                 {% else %}
                 <span class="user-badge">Regular User</span>

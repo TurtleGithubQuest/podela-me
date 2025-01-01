@@ -1,3 +1,4 @@
+use crate::database::Ulid;
 use crate::PodelError;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
@@ -7,15 +8,13 @@ use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{Executor, Pool, Postgres};
 use std::fmt::Debug;
 
-#[derive(sqlx::FromRow, Clone, Debug, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, sqlx::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
-    /// ULID
-    pub id: String,
+    pub id: Ulid,
     pub name: String,
     pub email: Option<String>,
     pub language: String,
-    #[sqlx(rename = "is_admin")]
-    pub admin: bool,
+    pub is_admin: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     #[serde(skip_serializing)]
     pub(crate) password_hash: String,
@@ -42,7 +41,7 @@ impl User {
         username: impl Into<String>,
         email: Option<impl Into<String>>,
         password: impl Into<String>,
-        admin: bool,
+        is_admin: bool,
     ) -> Result<User, PodelError> {
         let password_hash = hash_password(password)?;
 
@@ -51,7 +50,7 @@ impl User {
             name: username.into(),
             language: "en-US".into(),
             email: email.map(|e| e.into()),
-            admin,
+            is_admin,
             created_at: chrono::Utc::now(),
             password_hash: password_hash.clone(),
         };
@@ -74,7 +73,7 @@ impl User {
             .bind(&user.email)
             .bind(password_hash)
             .bind(&user.name)
-            .bind(user.admin)
+            .bind(user.is_admin)
             .execute(pool)
             .await?;
 

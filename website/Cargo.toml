@@ -12,13 +12,11 @@ rinja_axum = { path = "../rinja_axum" }
 axum = { workspace = true }
 axum-login = { workspace = true }
 tokio = { workspace = true }
-clap = { workspace = true }
-sqlx = { workspace = true }
 fluent-templates = { workspace = true }
 lazy_static = { workspace = true }
 
 rinja = { git = "https://github.com/rinja-rs/rinja.git", branch = "master" }
-axum-macros = "0.4.2"
+axum-macros = "0.5.0"
 tower = { version = "0.5.2" }
 tower-http = { version = "0.6.2", features = ["fs"] }
 tower-sessions = { version = "0.13.0", default-features = false, features = ["signed"] }

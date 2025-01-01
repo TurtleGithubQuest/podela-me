@@ -1,4 +1,6 @@
 use crate::docker::Docker;
+use common::database::reviewable::website::Website;
+use common::database::reviewable::{LegalForm, Organization};
 use common::database::{create_pool, migrate};
 use common::PodelError;
 use notify::{Error, RecursiveMode, Watcher};
@@ -38,14 +40,17 @@ async fn main() -> Result<(), PodelError> {
 }
 
 async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
-    let _ = common::database::user::User::register(
+    let admin = common::database::user::User::register(
         &pool,
         "admin",
         Some("test@example.com"),
         "admin",
         true,
-    )
-    .await;
+    ).await.ok();
+    let org = Organization::new(LegalForm::Sro, admin);
+    let _ = Website::new("test1", "example.com", None::<String>, Some(org)).save(&pool).await;
+    let _ = Website::new("test2", "google.com", Some("Short description test\nyes"), None).save(&pool).await;
+
     Ok(())
 }
 

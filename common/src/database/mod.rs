@@ -5,11 +5,14 @@ use sqlx::migrate::{MigrateError, Migrator};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Pool, Postgres};
 use std::time::Duration;
+use crate::database::user::User;
 
 pub mod user;
 pub mod reviewable;
 
 pub type Ulid = String;
+pub type UserId = String;
+
 static MIGRATOR: Migrator = sqlx::migrate!(".\\migrations");
 
 #[derive(Parser, Debug)]

@@ -1,4 +1,4 @@
-use crate::database::Ulid;
+use crate::database::{Ulid, UserId};
 use crate::PodelError;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
@@ -6,6 +6,7 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{Executor, Pool, Postgres};
 use std::fmt::Debug;
+use chrono::Days;
 
 #[derive(sqlx::FromRow, sqlx::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
@@ -83,6 +84,35 @@ impl User {
         }
 
         Ok(user)
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct Session {
+    pub token: Ulid,
+    /// logged-in user id
+    pub user_id: Option<String>,
+    /// logged-in user
+    pub user: Option<User>,
+    /// user's ip address on creation
+    pub ip: String,
+    /// shall we invalidate the session on ip change?
+    pub enforce_ip: bool,
+    pub expiration: chrono::DateTime<chrono::Utc>
+}
+
+impl Session {
+    pub fn new(user_id: Option<impl Into<crate::database::Ulid>>, ip: impl Into<String>) -> Session {
+        let now = chrono::Utc::now();
+        let expiration = now.checked_add_days(Days::new(4));
+        Self {
+            token: Ulid::new().into(),
+            user_id: user_id.map(Into::into),
+            user: None,
+            ip: ip.into(),
+            enforce_ip: false, //todo
+            expiration: expiration.unwrap_or(now),
+        }
     }
 }
 

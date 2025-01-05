@@ -14,7 +14,7 @@ pub mod docker;
 #[tokio::main]
 async fn main() -> Result<(), PodelError> {
     let postgres = Docker::new("podela_me_dev_postgres");
-    postgres.start().await.unwrap();
+    postgres.start().await.map_err(|err| PodelError::DatabaseError(err.to_string()))?;
     let pool = create_pool().await?;
     migrate(&pool).await.expect("Database migration failed");
     setup_dev(&pool).await?;

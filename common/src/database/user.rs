@@ -3,7 +3,6 @@ use crate::PodelError;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use axum_login::{AuthUser, AuthnBackend};
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{Executor, Pool, Postgres};
 use std::fmt::Debug;
@@ -103,7 +102,7 @@ pub fn hash_password(password: impl Into<String>) -> Result<String, PodelError> 
 
     Ok(password_hash)
 }
-
+/*
 impl AuthUser for User {
     type Id = String;
 
@@ -114,7 +113,7 @@ impl AuthUser for User {
     fn session_auth_hash(&self) -> &[u8] {
         self.password_hash.as_bytes()
     }
-}
+}*/
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Credentials {

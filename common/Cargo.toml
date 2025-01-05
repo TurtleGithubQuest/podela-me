@@ -7,8 +7,6 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-axum = { workspace = true }
-axum-login = { workspace = true }
 clap = { workspace = true }
 ulid = { workspace = true }
 sqlx = { workspace = true }

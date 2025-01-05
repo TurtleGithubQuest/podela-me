@@ -1,27 +1,31 @@
 use crate::page::{index, partials, subject, user};
-use axum_login::axum::{
-    extract::{FromRef, FromRequestParts},
-    http::StatusCode,
-    routing::get,
-    {Router, ServiceExt},
-};
-use axum_login::tower_sessions::cookie::time::Duration;
-use axum_login::tower_sessions::{Expiry, SessionManagerLayer};
-use axum_login::AuthManagerLayerBuilder;
 use common::database::{create_pool, migrate};
 use common::{AppState, PodelError};
+use poem::{
+    get, handler,
+    listener::TcpListener,
+    middleware::AddData,
+    web::{Data, Path},
+    EndpointExt, Route, Server,
+};
 use fluent_templates::LanguageIdentifier;
 use lazy_static::lazy_static;
 use std::str::FromStr;
-use tokio::net::TcpListener;
+use std::sync::Arc;
+use log::error;
+use poem::endpoint::StaticFilesEndpoint;
+use poem::middleware::Csrf;
+use poem::session::{CookieConfig, CookieSession};
+use poem::web::cookie::SameSite;
+use poem::web::Html;
+use rinja::Template;
 use tokio::signal;
 use tokio::task::AbortHandle;
-use tower_http::services::ServeDir;
-use tower_sessions::cookie::Key;
-use tower_sessions::ExpiredDeletion;
-use tower_sessions_sqlx_store::PostgresStore;
 
 pub mod page;
+pub mod filters;
+
+pub type PoemResult = poem::Result<Html<String>, poem::error::NotFoundError>;
 
 lazy_static! {
     static ref DEFAULT_LANGUAGE: LanguageIdentifier =
@@ -35,40 +39,25 @@ async fn main() -> Result<(), PodelError> {
 
     migrate(&pool).await.unwrap();
 
-    let session_store = PostgresStore::new(pool.clone());
-    session_store.migrate().await?;
+    let state =  Arc::new(AppState::new(pool));
 
-    let deletion_task = tokio::task::spawn(
-        session_store
-            .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-    );
+    let app = Route::new()
+        .nest("/assets/", StaticFilesEndpoint::new("./assets"))
+        .nest("/partials", partials::route())
+        .nest("/user", user::route_user())
+        .nest("/auth", user::route_auth())
+        .nest("/website", subject::route_website())
+        .at("/", get(index::get))
+        .with(CookieSession::new(
+            CookieConfig::new()
+                .name("cookie")
+                .same_site(SameSite::Strict)
+                .secure(false)
+        ))
+        .with(Csrf::new())
+        .with(AddData::new(state));
 
-    let key = Key::generate();
-
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
-        .with_expiry(Expiry::OnInactivity(Duration::days(1)))
-        .with_signed(key);
-
-    let state = AppState::new(pool);
-    let auth_layer = AuthManagerLayerBuilder::new(state, session_layer).build();
-
-    let app = Router::new()
-        .route("/", get(index::get))
-        .merge(user::router())
-        .merge(partials::router())
-        .merge(subject::router())
-        .nest_service("/assets", ServeDir::new("assets"))
-        .layer(auth_layer);
-
-    let listener = TcpListener::bind("127.0.0.1:3000").await?;
-
-    axum::serve(listener, app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
-        .await?;
-
-    deletion_task.await?.unwrap();
+    Server::new(TcpListener::bind("127.0.0.1:3000")).run(app).await?;
 
     Ok(())
 }
@@ -91,9 +80,11 @@ macro_rules! extend_with_app_state {
         use crate::DEFAULT_LANGUAGE;
         use fluent_templates::LanguageIdentifier;
         use std::str::FromStr;
-        use rinja_axum::axum::*;
-        use rinja_axum::Template;
-        use rinja_axum::filters as filters;
+        use rinja::Template;
+        use std::sync::Arc;
+        use poem::{web::{Data}, session::Session};
+        use common::AppState;
+        use crate::filters as filters;
 
         $(
             #[allow(dead_code)]
@@ -112,31 +103,24 @@ macro_rules! extend_with_app_state {
 
             impl<'a> $name<'a> {
                 pub fn from_app_state(
-                    auth_session: &'a common::AuthSession, $( $field_name: $field_type, )*
+                    state: Data<&'a Arc<AppState>>,
+                    session: &'a Session,
+                    $( $field_name: $field_type, )*
                 ) -> Self {
                     Self {
                         $( $field_name, )*
-                        title: auth_session.backend.title,
-                        visitors: auth_session.backend.visitors,
-                        user_language: auth_session
-                            .user
-                            .as_ref()
-                            .and_then(|user| LanguageIdentifier::from_str(&user.language).ok())
+                        title: state.title,
+                        visitors: state.visitors,
+                        user_language: session
+                            .get::<String>("user_language")
+                            .and_then(|lang| LanguageIdentifier::from_str(lang.as_str()).ok())
                             .unwrap_or_else(|| DEFAULT_LANGUAGE.clone()),
-                        user: auth_session.user.clone(),
+                        user: session.get::<common::database::user::User>("user"),
                     }
                 }
             }
         )*
     };
-}
-
-/// Utility function for mapping any error into a `500 Internal Server Error` response.
-fn internal_error<E>(err: E) -> (StatusCode, String)
-where
-    E: std::error::Error,
-{
-    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
 
 async fn shutdown_signal(deletion_task_abort_handle: AbortHandle) {
@@ -160,5 +144,17 @@ async fn shutdown_signal(deletion_task_abort_handle: AbortHandle) {
     tokio::select! {
         _ = ctrl_c => { deletion_task_abort_handle.abort() },
         _ = terminate => { deletion_task_abort_handle.abort() },
+    }
+}
+
+fn render<T>(template: &T) -> PoemResult
+where
+    T: Template {
+    match template.render() {
+        Ok(rendered) => Ok(Html(rendered)),
+        Err(e) => {
+            error!("Template rendering error: {}", e);
+            Err(poem::error::NotFoundError)
+        }
     }
 }

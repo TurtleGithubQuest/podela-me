@@ -2,8 +2,6 @@ pub use axum_login::axum;
 use axum_login::axum::response::{IntoResponse, Response};
 pub use rinja::*;
 
-pub mod filters;
-
 /// Render a [`Template`] into a [`Response`], or render an error page.
 #[must_use]
 pub fn into_response<T: ?Sized + rinja::Template>(tmpl: &T) -> Response {

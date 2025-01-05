@@ -8,7 +8,7 @@ fluent_templates::static_loader! {
     };
 }
 
-pub fn fluent<T: std::fmt::Display>(key: T, lang: &LanguageIdentifier) -> ::rinja::Result<String> {
+pub fn fluent<T: std::fmt::Display>(key: T, lang: &LanguageIdentifier) -> rinja::Result<String> {
     let key = key.to_string();
     Ok(LOCALES.lookup(lang, &key))
 }

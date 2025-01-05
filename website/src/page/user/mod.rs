@@ -1,13 +1,6 @@
 use crate::extend_with_app_state;
-use axum_login::axum::{
-    extract::Path,
-    routing::{get, post},
-    Router,
-};
+use poem::{get, post, Route, handler, web::Path};
 use common::database::user::User;
-use common::AuthSession;
-use rinja_axum::axum::response::{IntoResponse, Response};
-use rinja_axum::*;
 
 extend_with_app_state! {
     #[template(path = "user/profile.html")]
@@ -19,65 +12,86 @@ extend_with_app_state! {
     struct UserAuthTemplate {};
 }
 
-pub fn router() -> Router<()> {
-    Router::new()
-        .route("/user/:id", get(get::profile))
-        .route("/auth", get(get::auth))
-        .route("/auth", post(post::auth))
-        .route("/auth/logout", post(post::logout))
+pub fn route_user() -> Route {
+    Route::new()
+        .at("/:id", get(get::profile))
+}
+
+pub fn route_auth() -> Route {
+    Route::new()
+        .at("/", get(get::auth).post(post::auth))
+        .at("/logout", post(post::logout))
 }
 
 mod get {
     use super::*;
-    use axum_macros::debug_handler;
-    use common::AuthSession;
+    use crate::PoemResult;
 
-    #[debug_handler]
+    #[handler]
     pub(crate) async fn profile(
-        auth_session: AuthSession,
+        state: Data<&Arc<AppState>>,
+        session: &Session,
         Path(user_id): Path<String>,
-    ) -> Response {
-        let profile = User::find(user_id, &auth_session.backend.pool).await;
-        let template = UserProfileTemplate::from_app_state(&auth_session, profile.ok());
-        rinja_axum::into_response(&template)
+    ) -> PoemResult {
+        let profile = User::find(user_id, &state.pool).await;
+        let template = UserProfileTemplate::from_app_state(state, session, profile.ok());
+        crate::render(&template)
     }
 
-    #[debug_handler]
-    pub(crate) async fn auth(mut auth_session: AuthSession) -> Response {
-        let template = UserAuthTemplate::from_app_state(&auth_session);
-        rinja_axum::into_response(&template)
+    #[handler]
+    pub(crate) async fn auth(
+        state: Data<&Arc<AppState>>,
+        session: &Session,
+    ) -> PoemResult {
+        let template = UserAuthTemplate::from_app_state(state, session);
+        crate::render(&template)
     }
 }
 
 mod post {
     use super::*;
-    use axum::http::StatusCode;
-    use axum::Form;
+    use poem::{IntoResponse, Response};
+    use poem::http::StatusCode;
+    use poem::web::Form;
     use common::database::user::Credentials;
+    use crate::PoemResult;
 
-    pub(crate) async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
-        auth_session.logout().await
-            .map(|_| StatusCode::OK)
-            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+    #[handler]
+    pub(crate) async fn logout(
+        session: &Session
+    ) -> impl IntoResponse {
+        session.purge();
+        Response::builder().status(StatusCode::OK).finish()
     }
 
+    #[handler]
     pub(crate) async fn auth(
-        mut auth_session: AuthSession,
+        state: Data<&Arc<AppState>>,
+        session: &Session,
         Form(creds): Form<Credentials>,
-    ) -> impl IntoResponse {
-        if creds.authentication {
+    ) -> PoemResult {
+        todo!()
+        /*if creds.authentication {
             login(auth_session, creds).await
         } else {
             register(auth_session, creds).await
-        }
+        }*/
     }
 
-    async fn register(mut auth_session: AuthSession, creds: Credentials) -> StatusCode {
+    async fn register(
+        state: Data<&Arc<AppState>>,
+        session: &Session,
+        creds: Credentials) -> StatusCode {
         todo!()
     }
 
-    async fn login(mut auth_session: AuthSession, creds: Credentials) -> StatusCode {
-        let user = match auth_session.authenticate(creds.clone()).await {
+    async fn login(
+        state: Data<&Arc<AppState>>,
+        session: &Session,
+        creds: Credentials
+    ) -> StatusCode {
+        todo!()
+        /*let user = match auth_session.authenticate(creds.clone()).await {
             Ok(Some(user)) => user,
             Ok(None) => {
                 return StatusCode::UNAUTHORIZED;
@@ -89,6 +103,6 @@ mod post {
             StatusCode::INTERNAL_SERVER_ERROR
         } else {
             StatusCode::OK
-        }
+        }*/
     }
 }

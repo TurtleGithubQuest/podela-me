@@ -10,6 +10,7 @@ pub mod website;
 #[sqlx(type_name = "RECORD")]
 pub struct Organization {
     pub id: Ulid,
+    pub name: String,
     pub form: LegalForm,
     pub user: Option<User>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -17,9 +18,10 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn new(form: LegalForm, user: Option<User>) -> Self {
+    pub fn new(name: impl Into<String>, form: LegalForm, user: Option<User>) -> Self {
         Self {
             id: ulid::Ulid::new().to_string(),
+            name: name.into(),
             form,
             user,
             created_at: chrono::Utc::now(),

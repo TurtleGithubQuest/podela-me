@@ -47,7 +47,7 @@ async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
         "admin",
         true,
     ).await.ok();
-    let org = Organization::new(LegalForm::Sro, admin);
+    let org = Organization::new("Test org", LegalForm::Sro, admin);
     let _ = Website::new("test1", "example.com", None::<String>, Some(org)).save(&pool).await;
     let _ = Website::new("test2", "google.com", Some("Short description test\nyes"), None).save(&pool).await;
 

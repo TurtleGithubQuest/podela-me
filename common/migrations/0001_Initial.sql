@@ -48,6 +48,7 @@ CREATE TABLE auth.session --maybe move this to redis...someday
     ------------------------- SUBJECT -------------------------
 CREATE TABLE subject.organization (
     id ulid PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
     form subject.legal_form NOT NULL,
     user_id ulid REFERENCES auth.user(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

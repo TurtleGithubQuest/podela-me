@@ -1,0 +1,80 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="website-container">
+    <h1 class="website-header">{{ "websites"|fluent(user_language) }}</h1>
+
+    <div class="table-container">
+        <table class="website-table">
+            <thead>
+                <tr>
+                    <th>{{ "website"|fluent(user_language) }}</th>
+                    <th>{{ "domain"|fluent(user_language) }}</th>
+                    <th>{{ "karma"|fluent(user_language) }}</th>
+                    <th>{{ "reviews"|fluent(user_language) }}</th>
+                    <th>{{ "age"|fluent(user_language) }}</th>
+                    <th>{{ "popularity"|fluent(user_language) }}</th>
+                    <th>{{ "organization"|fluent(user_language) }}</th>
+                    <th>{{ "owner"|fluent(user_language) }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for website in subjects %}
+                <tr>
+                    <td class="website-name">
+                        <div class="name-wrapper">
+                            <div class="website-icon">{{ website.name.chars().next().unwrap_or('W') }}</div>
+                            <div class="name-content">
+                                <h3>{{ website.name }}</h3>
+                                {% if let Some(desc) = website.description %}
+                                <p class="website-description">{{ desc }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="website-domain">
+                        <a href="web/{{website.id}}"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            <i class="fas fa-globe"></i>
+                            {{ website.domain_name }}
+                        </a>
+                    </td>
+                    <td class="karma-value">{{ website.karma.amount }}</td>
+                    <td class="karma-value">{{ website.karma.reviews }}</td>
+                    <td class="karma-value">{{ website.karma.age }}</td>
+                    <td class="karma-value">{{ website.karma.popularity }}</td>
+                    {% if let Some(org) = website.organization %}
+                    <td class="website-org">
+                            <div class="org-wrapper">
+                                <i class="fas fa-building"></i>
+                                <a class="org-name" href="/org/{{ org.id }}">{{ org.name }}</a>
+                            </div>
+                    </td>
+                    <td class="website-owner">
+                        {% if let Some(user) = org.user %}
+                            <div class="owner-wrapper">
+                                <i class="fas fa-user"></i>
+                                <a class="owner-name" href="/user/{{ user.id }}">{{ user.name }}</a>
+                            </div>
+                        {% else %}
+                            <i class="fas fa-user-slash"></i> X
+                        {% endif %}
+                    </td>
+                    {% else %}
+                    <td class="website-org">
+                        <div class="org-wrapper">
+                            <i class="fas fa-question"></i> None
+                        </div>
+                    </td>
+                    <td class="website-owner">
+                        <i class="fas fa-question"></i> X
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

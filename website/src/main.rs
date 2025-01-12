@@ -46,7 +46,7 @@ async fn main() -> Result<(), PodelError> {
         .nest("/partials", partials::route())
         .nest("/user", user::route_user())
         .nest("/auth", user::route_auth())
-        .nest("/website", subject::route_website())
+        .nest("/web", subject::route_website())
         .at("/", get(index::get))
         .with(CookieSession::new(
             CookieConfig::new()

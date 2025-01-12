@@ -197,13 +197,40 @@ impl SessionData {
         let expiration_ts = i64::from_be_bytes(expiration_part.try_into()?);
 
         if expiration_ts < chrono::Utc::now().timestamp() {
-            println!("expired {:?}", expiration_ts);
-            return Err(PodelError::UserError("Session is expired".into()).into())
+            return Err(PodelError::UserError(format!("Session expired at: {expiration_ts}.")).into())
         }
 
         let session: SessionData = bincode::deserialize(session_bytes)?;
-        println!("session {:?}", session.id);
         Ok(session)
+    }
+
+    pub async fn authenticate(&self, pool: &Pool<Postgres>, session: &Session) -> Result<(), PodelError> {
+        if let Err(err) = self.validate(pool).await {
+            session.clear();
+            Err(err)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn validate(&self, pool: &Pool<Postgres>) -> Result<(), PodelError> {
+        let row = sqlx::query(r#"
+            SELECT id, user_id, ip, expires_at
+            FROM auth.session
+            WHERE id = $1 AND user_id = $2 AND ip = $3 AND expires_at > NOW()
+        "#)
+            .bind(&self.id)
+            .bind(&self.user.id)
+            .bind(&self.ip)
+            .bind(&self.expires_at)
+            .fetch_one(pool)
+            .await?;
+
+        if row.is_empty() {
+            Err(PodelError::Empty())
+        } else {
+            Ok(())
+        }
     }
 
     pub async fn save(&self, pool: &Pool<Postgres>) -> Result<(), PodelError> {

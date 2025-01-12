@@ -15,6 +15,13 @@
             <li class="navbar__item">
                 <a class="navbar__link" href="#">About</a>
             </li>
+            <li class="navbar__item">
+                <a class="navbar__link" href="/web">{{ "websites"|fluent(user_language) }}</a>
+            </li>
+            <li class="navbar__item">
+                <a class="navbar__link" href="/org">{{ "organizations"|fluent(user_language) }}</a>
+            </li>
+
             <li class="navbar__btn">
                 {% if let Some(user) = user %}
                 <a href="/user/{{ user.id }}">{{ user.name }}</a>

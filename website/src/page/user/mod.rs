@@ -35,7 +35,6 @@ mod get {
     ) -> PoemResult {
         let profile = User::find(user_id, &state.pool).await;
         let template = UserProfileTemplate::from_app_state(state, session, profile.ok());
-        println!("{:?}", User::from_session(session));
         crate::render(&template)
     }
 

@@ -51,7 +51,7 @@ async fn main() -> Result<(), PodelError> {
         .with(CookieSession::new(
             CookieConfig::new()
                 .name("cookie")
-                .same_site(SameSite::Strict)
+                .same_site(SameSite::Lax)
                 .secure(false)
         ))
         .with(Csrf::new())
@@ -97,7 +97,7 @@ macro_rules! extend_with_app_state {
                 )*
                 pub title: &'a str,
                 pub visitors: u64,
-                pub user: Option<common::database::user::User>,
+                pub user: Option<Arc<common::database::user::User>>,
                 pub user_language: LanguageIdentifier,
             }
 
@@ -115,7 +115,7 @@ macro_rules! extend_with_app_state {
                             .get::<String>("user_language")
                             .and_then(|lang| LanguageIdentifier::from_str(lang.as_str()).ok())
                             .unwrap_or_else(|| DEFAULT_LANGUAGE.clone()),
-                        user: session.get::<common::database::user::User>("user"),
+                        user: common::database::user::User::from_session(session).ok(),
                     }
                 }
             }

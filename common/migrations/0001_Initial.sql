@@ -35,11 +35,12 @@ CREATE TABLE auth.user
     updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE auth.session
+CREATE TABLE auth.session --maybe move this to redis...someday
 (
-    id      BIGSERIAL PRIMARY KEY,
-    user_id VARCHAR(26) REFERENCES auth.user (id) ON DELETE CASCADE,
-    token   TEXT NOT NULL,
+    id ulid PRIMARY KEY,
+    user_id ulid REFERENCES auth.user (id) ON DELETE CASCADE,
+    ip VARCHAR(45),
+    enforce_ip BOOLEAN DEFAULT FALSE,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

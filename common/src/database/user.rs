@@ -4,9 +4,14 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use serde::{Deserialize, Deserializer, Serialize};
-use sqlx::{Executor, Pool, Postgres};
+use sqlx::{Executor, Pool, Postgres, Row};
 use std::fmt::Debug;
+use std::ops::Deref;
+use std::sync::Arc;
 use chrono::Days;
+use poem::session::Session;
+use sqlx::postgres::PgRow;
+use crate::database::reviewable::website::Website;
 
 #[derive(sqlx::FromRow, sqlx::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
@@ -16,8 +21,8 @@ pub struct User {
     pub language: String,
     pub is_admin: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    #[serde(skip_serializing)]
-    pub(crate) password_hash: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub password_hash: String,
 }
 
 impl User {
@@ -85,34 +90,166 @@ impl User {
 
         Ok(user)
     }
+
+    pub async fn create_session(self, pool: &Pool<Postgres>, session: &Session, ip: Option<impl Into<String>>) -> Result<(), PodelError> {
+        let arc = Arc::new(self);
+        let session_data = SessionData::new(arc, ip);
+        session_data.save(pool).await?;
+        match session_data.to_base64() {
+            Ok(base64) => Ok(session.set("data", base64)),
+            Err(err) => Err(PodelError::UserError(err.to_string()))
+        }
+    }
+
+    pub fn from_session(session: &Session) -> Result<Arc<Self>, PodelError> {
+        if let Some(base64) = session.get::<String>("data") {
+            match SessionData::from_base64(&base64) {
+                Ok(data) => Ok(data.user),
+                Err(err) => Err(PodelError::UserError(err.to_string()))
+            }
+        } else {
+            Err(PodelError::Empty())
+        }
+    }
+
+    pub fn from_row(row: &PgRow) -> Result<Self, PodelError> {
+        if let Some(user_id) = row.try_get::<String, _>("user_id").ok() {
+            Ok(User {
+                id: user_id,
+                email: row.try_get("user_email")?,
+                password_hash: row.try_get("user_password_hash")?,
+                language: row.try_get("user_language")?,
+                name: row.try_get("user_name")?,
+                is_admin: row.try_get("user_is_admin")?,
+                created_at: row.try_get("user_created_at")?,
+            })
+        } else {
+            Err(PodelError::UserError("Row does not have user id.".into()))
+        }
+    }
+}
+
+pub fn is_valid(session: &Session) -> bool {
+    if let Some(expiration) = session.get::<chrono::DateTime<chrono::Utc>>("expiration") {
+        if expiration > chrono::Utc::now() {
+            return true
+        }
+    }
+    false
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-pub struct Session {
-    pub token: Ulid,
-    /// logged-in user id
-    pub user_id: Option<String>,
+pub struct SessionData {
+    pub id: Ulid,
     /// logged-in user
-    pub user: Option<User>,
+    pub user: Arc<User>,
     /// user's ip address on creation
-    pub ip: String,
+    pub ip: Option<String>,
     /// shall we invalidate the session on ip change?
     pub enforce_ip: bool,
-    pub expiration: chrono::DateTime<chrono::Utc>
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>
 }
 
-impl Session {
-    pub fn new(user_id: Option<impl Into<crate::database::Ulid>>, ip: impl Into<String>) -> Session {
+impl SessionData {
+    pub fn new(user: Arc<User>, ip: Option<impl Into<String>>) -> Self {
         let now = chrono::Utc::now();
         let expiration = now.checked_add_days(Days::new(4));
         Self {
-            token: Ulid::new().into(),
-            user_id: user_id.map(Into::into),
-            user: None,
-            ip: ip.into(),
+            id: ulid::Ulid::new().into(),
+            user,
+            ip: ip.map(Into::into),
             enforce_ip: false, //todo
-            expiration: expiration.unwrap_or(now),
+            expires_at: expiration.unwrap_or(now),
+            created_at: now
         }
+    }
+
+    pub fn from_session(session: &Session) -> Option<Self> {
+        session.get::<String>("data").map(|base64| Self::from_base64(&base64).ok()).flatten()
+    }
+
+    pub fn to_base64(&self) -> Result<String, Box<dyn std::error::Error>> {
+        // Convert expiration to i64 (UTC timestamp in seconds)
+        let expiration_ts = self.expires_at.timestamp();
+        // Serialize that i64 to 8 bytes (big-endian)
+        let mut bytes = expiration_ts.to_be_bytes().to_vec();
+        // Then serialize the full SessionData (including expiration, if you like)
+        let session_bytes = bincode::serialize(self)?;
+
+        // Prepend those 8 bytes
+        bytes.extend_from_slice(&session_bytes);
+
+        // Finally, Base64-encode
+        let encoded = base64::encode(&bytes);
+        Ok(encoded)
+    }
+
+    pub fn from_base64(encoded: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let bytes = base64::decode(encoded)?;
+        if bytes.len() < 8 {
+            println!("Not enough bytes {:?}", bytes);
+            return Err("Not enough bytes to decode expiration".into());
+        }
+
+        // First 8 bytes -> expiration
+        let (expiration_part, session_bytes) = bytes.split_at(8);
+        let expiration_ts = i64::from_be_bytes(expiration_part.try_into()?);
+
+        if expiration_ts < chrono::Utc::now().timestamp() {
+            println!("expired {:?}", expiration_ts);
+            return Err(PodelError::UserError("Session is expired".into()).into())
+        }
+
+        let session: SessionData = bincode::deserialize(session_bytes)?;
+        println!("session {:?}", session.id);
+        Ok(session)
+    }
+
+    pub async fn save(&self, pool: &Pool<Postgres>) -> Result<(), PodelError> {
+        let result = sqlx::query(r#"
+                INSERT INTO auth.session (
+                    id,
+                    user_id,
+                    ip,
+                    enforce_ip,
+                    expires_at,
+                    created_at
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6
+                )
+            "#)
+            .bind(&self.id)
+            .bind(&self.user.id)
+            .bind(&self.ip)
+            .bind(&self.enforce_ip)
+            .bind(&self.expires_at)
+            .bind(&self.created_at)
+            .execute(pool)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            Err(PodelError::DatabaseError(
+                "Failed to insert session".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl sqlx::FromRow<'_, PgRow> for SessionData {
+    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+        let user = User::from_row(row).map_err(|_| sqlx::Error::RowNotFound)?;
+        Ok(SessionData {
+            id: row.try_get::<String, _>("id")?,
+            user: Arc::new(user),
+            ip: row.try_get::<Option<String>, _>("ip")?,
+            enforce_ip: row.try_get::<bool, _>("enforce_ip")?,
+            expires_at: row.try_get::<chrono::DateTime<chrono::Utc>, _>("expires_at")?,
+            created_at: row.try_get::<chrono::DateTime<chrono::Utc>, _>("created_at")?,
+        })
     }
 }
 

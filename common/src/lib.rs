@@ -16,6 +16,8 @@ pub enum PodelError {
     DatabaseError(String),
     #[error("UserError: {0}")]
     UserError(String),
+    #[error("It's empty.")]
+    Empty(),
 
     #[error(transparent)]
     SqlxError(#[from] sqlx::Error),

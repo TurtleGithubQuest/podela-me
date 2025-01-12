@@ -19,23 +19,7 @@ pub struct Website {
 impl sqlx::FromRow<'_, PgRow> for Website {
     fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
         let organization = if let Some(organization_id) = row.try_get::<String, _>("org_id").ok() {
-            let user = if let Some(user_id) = row.try_get::<String, _>("user_id").ok() {
-                Some(User {
-                    id: user_id,
-                    email: row.try_get("user_email")?,
-                    password_hash: row.try_get("user_password_hash")?,
-                    language: row.try_get("user_language")?,
-                    name: row.try_get("user_name")?,
-                    is_admin: row.try_get("user_is_admin")?,
-                    /*is_active: row.try_get("user_is_active")?,
-                    is_verified: row.try_get("user_is_verified")?,
-                    last_login: row.try_get("user_last_login")?,*/
-                    created_at: row.try_get("user_created_at")?,
-                    //updated_at: row.try_get("user_updated_at")?
-                })
-            } else {
-                None
-            };
+            let user = User::from_row(row).ok();
 
             Some(Organization {
                 id: organization_id,

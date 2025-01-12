@@ -35,6 +35,7 @@ mod get {
     ) -> PoemResult {
         let profile = User::find(user_id, &state.pool).await;
         let template = UserProfileTemplate::from_app_state(state, session, profile.ok());
+        println!("{:?}", User::from_session(session));
         crate::render(&template)
     }
 
@@ -49,18 +50,19 @@ mod get {
 }
 
 mod post {
+    use log::error;
     use super::*;
     use poem::{IntoResponse, Response};
     use poem::http::StatusCode;
     use poem::web::Form;
-    use common::database::user::Credentials;
+    use common::database::user::{is_valid, verify_password, Credentials, SessionData};
     use crate::PoemResult;
 
     #[handler]
     pub(crate) async fn logout(
         session: &Session
     ) -> impl IntoResponse {
-        session.purge();
+        session.clear();
         Response::builder().status(StatusCode::OK).finish()
     }
 
@@ -69,20 +71,43 @@ mod post {
         state: Data<&Arc<AppState>>,
         session: &Session,
         Form(creds): Form<Credentials>,
-    ) -> PoemResult {
-        todo!()
-        /*if creds.authentication {
-            login(auth_session, creds).await
+    ) -> StatusCode {
+        let status = if creds.authentication {
+            login(state, session, creds).await
         } else {
-            register(auth_session, creds).await
-        }*/
+            register(state, session, creds).await
+        };
+        status
     }
 
     async fn register(
         state: Data<&Arc<AppState>>,
         session: &Session,
         creds: Credentials) -> StatusCode {
-        todo!()
+        if creds.username.is_empty() || creds.password.is_empty() {
+            return StatusCode::BAD_REQUEST;
+        }
+
+        if User::find(&creds.username, &state.pool).await.is_ok() {
+            return StatusCode::CONFLICT;
+        }
+
+        match User::register(
+            &state.pool,
+            creds.username,
+            None::<String>,
+            creds.password,
+            false,
+        )
+        .await {
+            Ok(user) => {
+                if let Err(err) = user.create_session(&state.pool, session, None::<String>).await { // TODO: fetch ip
+                   error!("{}", err);
+                }
+                StatusCode::OK
+            }
+            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 
     async fn login(
@@ -90,19 +115,23 @@ mod post {
         session: &Session,
         creds: Credentials
     ) -> StatusCode {
-        todo!()
-        /*let user = match auth_session.authenticate(creds.clone()).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                return StatusCode::UNAUTHORIZED;
-            }
-            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+        let user = match User::find(&creds.username, &state.pool).await {
+            Ok(user) => user,
+            Err(_) => return StatusCode::UNAUTHORIZED,
         };
 
-        if auth_session.login(&user).await.is_err() {
-            StatusCode::INTERNAL_SERVER_ERROR
-        } else {
-            StatusCode::OK
-        }*/
+        if is_valid(&session) {
+            return StatusCode::CONFLICT;
+        }
+
+        if verify_password(creds.password, &user.password_hash).is_err() {
+            return StatusCode::UNAUTHORIZED;
+        }
+
+        if let Err(err) = user.create_session(&state.pool, session, None::<String>).await { // TODO: fetch ip
+           error!("{}", err);
+        }
+
+        StatusCode::OK
     }
 }

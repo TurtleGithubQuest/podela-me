@@ -79,20 +79,3 @@ impl Karma {
         }
     }
 }
-/*
-impl sqlx::FromRow<'_, PgRow> for Organization {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let id: Ulid = row.try_get("id")?;
-        let form: LegalForm = row.try_get("form")?;
-
-        let user = row.try_get::<User, _>("user").ok();
-
-        Ok(Organization { id, form, user,  })
-    }
-}*/
-/*
-impl sqlx::Decode<'_, Postgres> for Organization {
-    fn decode(value: <Postgres as Database>::ValueRef<'_>) -> Result<Self, BoxDynError> {
-        todo!()
-    }
-}*/

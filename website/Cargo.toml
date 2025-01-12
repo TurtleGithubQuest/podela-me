@@ -14,5 +14,6 @@ log = { workspace = true }
 tokio = { workspace = true }
 fluent-templates = { workspace = true }
 lazy_static = { workspace = true }
+serde = { workspace = true }
 
 rinja = { git = "https://github.com/rinja-rs/rinja.git", branch = "master" }

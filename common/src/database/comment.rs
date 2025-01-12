@@ -8,38 +8,26 @@ use crate::database::Ulid;
 use crate::database::user::User;
 use crate::PodelError;
 
+pub trait CommentParent: Commentable + Send + Sync + Unpin + sqlx::Type<Postgres> + for<'r> sqlx::Decode<'r, Postgres> + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> {}
+impl<T> CommentParent for T where T: Commentable + Send + Sync + Unpin + sqlx::Type<Postgres> + for<'r> sqlx::Decode<'r, Postgres> + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> {}
+
 #[derive(sqlx::FromRow, Clone, Debug, Serialize, Deserialize)]
-pub struct Comment<T>
-where
-    T: Send + Sync + Unpin + sqlx::Type<Postgres> + for<'r> sqlx::Decode<'r, Postgres> + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow>
-{
+pub struct Comment {
     pub id: Ulid,
+    pub parent_type: String,
     pub parent_id: Ulid,
-    #[serde(skip_serializing, skip_deserializing)]
-    pub parent: Option<T>,
     pub user: User,
     pub text: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl <T>Comment<T>
-where
-    T: Commentable + Send + Unpin + Sync + sqlx::Type<Postgres> + for<'r> sqlx::Decode<'r, Postgres> + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow>
-{
-    pub fn parent_table_name() -> String {
-        std::any::type_name::<T>()
-            .split("::")
-            .last()
-            .map(|s| s.to_lowercase())
-            .unwrap_or_default()
-    }
-
-    pub fn new(parent: T, text: impl Into<String>, user: Arc<User>) -> Self {
+impl Comment {
+    pub fn new(parent_type: impl Into<String>, parent_id: impl Into<Ulid>, text: impl Into<String>, user: Arc<User>) -> Self {
         Self {
             id: ulid::Ulid::new().into(),
-            parent_id: parent.id().into(),
-            parent: Some(parent),
+            parent_type: parent_type.into(),
+            parent_id: parent_id.into(),
             user: user.deref().clone(),
             text: text.into(),
             created_at: chrono::Utc::now(),
@@ -60,7 +48,7 @@ where
                 VALUES (
                     $1, $2, $3, $4, $5, $6
                 )
-            "#, Comment::<T>::parent_table_name()))
+            "#, self.parent_type))
             .bind(&self.id)
             .bind(&self.parent_id)
             .bind(&self.user.id)
@@ -75,15 +63,20 @@ where
 
     pub async fn find_multiple(
         pool: &Pool<Postgres>,
+        parent_type: impl Into<String>,
+        parent_id: impl Into<String> + sqlx::Type<sqlx::Postgres>,
         limit: i64,
         offset: i64
     ) -> Result<Vec<Self>, PodelError> {
+        let parent_type = parent_type.into();
+        println!("Fetching for {parent_type}");
         Ok(
-            sqlx::query_as::<Postgres, Self>(
+            sqlx::query_as::<Postgres, Comment>(
             &format!(r#"
                 SELECT
                     c.id,
                     c.parent_id as parent_id,
+                    $1::text as parent_type,
                     u.id as user_id,
                     u.email as user_email,
                     u.password_hash as user_password_hash,
@@ -98,20 +91,21 @@ where
                     c.text,
                     c.created_at,
                     c.updated_at
-                FROM comment.{table_name} c
-                JOIN auth.user u ON c.user_id = u.id
+                FROM comment.{parent_type} c
+                LEFT JOIN auth.user u ON c.user_id = u.id
+                WHERE parent_id = $2
                 ORDER BY c.created_at DESC
-                LIMIT $1
-                OFFSET $2
-            "#, table_name = Self::parent_table_name()
-            )
+                LIMIT $3
+                OFFSET $4
+            "#)
         )
+        .bind(parent_type)
+        .bind(parent_id.into())
         .bind(min(limit, 20))
         .bind(offset)
         .fetch_all(pool)
         .await?
         )
-
     }
 }
 

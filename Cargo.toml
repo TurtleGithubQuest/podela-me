@@ -37,6 +37,7 @@ too_many_arguments = "allow"
 tokio = { version = "1.12", features = ["full"] }
 thiserror = "2.0.9"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.135"
 tokio-tungstenite = "0.26.1"
 poem = { version = "3.1.6", features = ["chrono", "websocket", "session", "static-files", "csrf"] }
 clap = { version = "4.5.23", features = ["derive", "env"] }

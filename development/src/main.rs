@@ -48,13 +48,13 @@ async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
         Some("test@example.com"),
         "admin",
         true,
-    ).await.ok();
-    let org = Organization::new("Test org", LegalForm::Sro, admin.clone());
+    ).await.unwrap_or(common::database::user::User::find("admin", &pool).await?);
+    let org = Organization::new("Test org", LegalForm::Sro, Some(admin.clone()));
     let web_test1 = Website::new("test1", "example.com", None::<String>, Some(org));
     let _ = web_test1.save(&pool).await;
     let _ = Website::new("test2", "google.com", Some("Short description test\nyes"), None).save(&pool).await;
 
-    let _ = Comment::new(web_test1, Arc::new(admin.unwrap())).save(&pool).await;
+    let _ = Comment::new("website", web_test1.id, "test text", Arc::new(admin)).save(&pool).await;
 
     Ok(())
 }

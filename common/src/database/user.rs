@@ -10,6 +10,7 @@ use std::sync::Arc;
 use chrono::Days;
 use poem::session::Session;
 use sqlx::postgres::PgRow;
+use crate::database::comment::Commentable;
 
 #[derive(sqlx::FromRow, sqlx::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
@@ -122,6 +123,12 @@ impl User {
         } else {
             Err(PodelError::UserError("Row does not have user id.".into()))
         }
+    }
+}
+
+impl Commentable for User {
+    fn id(&self) -> &Ulid {
+        &self.id
     }
 }
 

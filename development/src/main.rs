@@ -7,7 +7,9 @@ use notify::{Error, RecursiveMode, Watcher};
 use sqlx::{Pool, Postgres};
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use tokio::process;
+use common::database::comment::Comment;
 
 pub mod docker;
 
@@ -47,9 +49,12 @@ async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
         "admin",
         true,
     ).await.ok();
-    let org = Organization::new("Test org", LegalForm::Sro, admin);
-    let _ = Website::new("test1", "example.com", None::<String>, Some(org)).save(&pool).await;
+    let org = Organization::new("Test org", LegalForm::Sro, admin.clone());
+    let web_test1 = Website::new("test1", "example.com", None::<String>, Some(org));
+    let _ = web_test1.save(&pool).await;
     let _ = Website::new("test2", "google.com", Some("Short description test\nyes"), None).save(&pool).await;
+
+    let _ = Comment::new(web_test1, Arc::new(admin.unwrap())).save(&pool).await;
 
     Ok(())
 }

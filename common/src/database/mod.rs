@@ -9,6 +9,7 @@ use crate::database::user::User;
 
 pub mod user;
 pub mod reviewable;
+pub mod comment;
 
 pub type Ulid = String;
 pub type UserId = String;

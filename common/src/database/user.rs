@@ -1,4 +1,4 @@
-use crate::database::{Ulid, UserId};
+use crate::database::{Ulid};
 use crate::PodelError;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
@@ -6,12 +6,10 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{Executor, Pool, Postgres, Row};
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::sync::Arc;
 use chrono::Days;
 use poem::session::Session;
 use sqlx::postgres::PgRow;
-use crate::database::reviewable::website::Website;
 
 #[derive(sqlx::FromRow, sqlx::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
@@ -60,20 +58,18 @@ impl User {
             password_hash: password_hash.clone(),
         };
 
-        let query = r#"
-            INSERT INTO auth.user (
-                id,
-                email,
-                password_hash,
-                name,
-                is_admin
-            )
-            VALUES (
-                $1, $2, $3, $4, $5
-            )
-        "#;
-
-        let result = sqlx::query(query)
+        let result = sqlx::query(r#"
+                INSERT INTO auth.user (
+                    id,
+                    email,
+                    password_hash,
+                    name,
+                    is_admin
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5
+                )
+            "#)
             .bind(&user.id)
             .bind(&user.email)
             .bind(password_hash)

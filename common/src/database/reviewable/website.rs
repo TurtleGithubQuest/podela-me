@@ -6,6 +6,7 @@ use crate::PodelError;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use sqlx::{Executor, Pool, Postgres, Row};
+use crate::database::comment::Commentable;
 
 #[derive(sqlx::Type, Clone, Debug, Serialize, Deserialize)]
 pub struct Website {
@@ -102,7 +103,7 @@ impl Website {
         let website = sqlx::query_as::<Postgres, Website>(&format!("{} WHERE w.id = $1 OR w.name = $1", Self::get_query()))
         .bind(id.into())
         .fetch_one(pool)
-        .await.unwrap(); //todo
+        .await?;
 
         Ok(website)
     }
@@ -165,5 +166,11 @@ impl Website {
 
         transaction.commit().await?;
         Ok(())
+    }
+}
+
+impl Commentable for Website {
+    fn id(&self) -> &Ulid {
+        &self.id
     }
 }

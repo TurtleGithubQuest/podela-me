@@ -25,7 +25,7 @@
                         <div class="name-wrapper">
                             <div class="website-icon">{{ website.name.chars().next().unwrap_or('W') }}</div>
                             <div class="name-content">
-                                <h3>{{ website.name }}</h3>
+                                <a href="web/{{ website.id }}"><h3>{{ website.name }}</h3></a>
                                 {% if let Some(desc) = website.description %}
                                 <p class="website-description">{{ desc }}</p>
                                 {% endif %}
@@ -33,7 +33,7 @@
                         </div>
                     </td>
                     <td class="website-domain">
-                        <a href="web/{{website.id}}"
+                        <a href="https://{{website.domain_name}}"
                            target="_blank"
                            rel="noopener noreferrer">
                             <i class="fas fa-globe"></i>

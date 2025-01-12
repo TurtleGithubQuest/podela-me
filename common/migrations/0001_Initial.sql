@@ -1,5 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE SCHEMA IF NOT EXISTS subject;
+CREATE SCHEMA IF NOT EXISTS comment;
 
 CREATE TYPE subject.legal_form AS ENUM (
     'Sro',
@@ -65,3 +66,26 @@ CREATE TABLE subject.website (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+    ------------------------- COMMENT -------------------------
+CREATE OR REPLACE FUNCTION create_comment_table(
+    table_name TEXT
+)
+RETURNS void AS $$
+BEGIN
+    EXECUTE format(
+        'CREATE TABLE comment.%I (
+            id              ulid PRIMARY KEY,
+            parent_id       ulid REFERENCES subject.%I(id),
+            user_id ulid REFERENCES auth.user(id) NOT NULL,
+            text            TEXT NOT NULL,
+            created_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )',
+        table_name,
+        table_name
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT create_comment_table('website');

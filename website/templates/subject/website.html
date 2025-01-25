@@ -65,6 +65,9 @@
                 {{ website.id }}
             </div>
         </div>
+        {% if let Some(comments) = comments %}
+            {% include "partials/comments.html" %}
+        {% endif %}
     </div>
 </div>
 {% else %}

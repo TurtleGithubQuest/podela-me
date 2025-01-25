@@ -3,7 +3,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
-use crate::database::reviewable::website::Website;
 use crate::database::Ulid;
 use crate::database::user::User;
 use crate::PodelError;
@@ -17,19 +16,19 @@ pub struct Comment {
     pub parent_type: String,
     pub parent_id: Ulid,
     pub user: User,
-    pub text: String,
+    pub content: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl Comment {
-    pub fn new(parent_type: impl Into<String>, parent_id: impl Into<Ulid>, text: impl Into<String>, user: Arc<User>) -> Self {
+    pub fn new(parent_type: impl Into<String>, parent_id: impl Into<Ulid>, content: impl Into<String>, user: Arc<User>) -> Self {
         Self {
             id: ulid::Ulid::new().into(),
             parent_type: parent_type.into(),
             parent_id: parent_id.into(),
             user: user.deref().clone(),
-            text: text.into(),
+            content: content.into(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
@@ -41,7 +40,7 @@ impl Comment {
                     id,
                     parent_id,
                     user_id,
-                    text,
+                    content,
                     created_at,
                     updated_at
                 )
@@ -52,7 +51,7 @@ impl Comment {
             .bind(&self.id)
             .bind(&self.parent_id)
             .bind(&self.user.id)
-            .bind(&self.text)
+            .bind(&self.content)
             .bind(&self.created_at)
             .bind(&self.updated_at)
             .execute(pool)
@@ -77,6 +76,9 @@ impl Comment {
                     c.id,
                     c.parent_id as parent_id,
                     $1::text as parent_type,
+                    c.content,
+                    c.created_at,
+                    c.updated_at,
                     u.id as user_id,
                     u.email as user_email,
                     u.password_hash as user_password_hash,
@@ -87,10 +89,7 @@ impl Comment {
                     u.is_verified as user_is_verified,
                     u.last_login as user_last_login,
                     u.created_at as user_created_at,
-                    u.updated_at as user_updated_at,
-                    c.text,
-                    c.created_at,
-                    c.updated_at
+                    u.updated_at as user_updated_at
                 FROM comment.{parent_type} c
                 LEFT JOIN auth.user u ON c.user_id = u.id
                 WHERE parent_id = $2

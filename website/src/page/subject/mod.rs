@@ -1,11 +1,13 @@
 use crate::extend_with_app_state;
 use common::database::reviewable::website::Website;
+use common::database::comment::Comment;
 use poem::{get, Route, handler, web::Path};
 
 extend_with_app_state! {
     #[template(path = "subject/website.html")]
     struct WebsiteSubjectTemplate {
         subject: Option<Website>,
+        comments: Option<Vec<Comment>>
     };
 
     #[template(path = "subject/website/list.html")]
@@ -22,6 +24,7 @@ pub fn route_website() -> Route {
 
 mod get {
     use log::error;
+    use tokio::join;
     use super::*;
     use crate::PoemResult;
 
@@ -46,8 +49,14 @@ mod get {
         session: &Session,
         Path(id): Path<String>,
     ) -> PoemResult {
-        let subject = Website::find(&state.pool, id).await;
-        let template = WebsiteSubjectTemplate::from_app_state(state, session, subject.ok());
+        let subject = Website::find(&state.pool, &id);
+        let comments = Comment::find_multiple(&state.pool, "website", &id, 20, 0);
+
+        let (subject, comments) = join!(subject, comments);
+
+        let comments = comments.unwrap();
+
+        let template = WebsiteSubjectTemplate::from_app_state(state, session, subject.ok(), Some(comments));
 
         crate::render(&template)
     }

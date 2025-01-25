@@ -54,7 +54,7 @@ async fn setup_dev(pool: &Pool<Postgres>) -> Result<(), PodelError> {
     let _ = web_test1.save(&pool).await;
     let _ = Website::new("test2", "google.com", Some("Short description test\nyes"), None).save(&pool).await;
 
-    let _ = Comment::new("website", web_test1.id, "test text", Arc::new(admin)).save(&pool).await;
+    let _ = Comment::new("website", web_test1.id, "test text", Arc::new(admin)).save(&pool).await?;
 
     Ok(())
 }

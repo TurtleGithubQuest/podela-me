@@ -78,7 +78,7 @@ BEGIN
             id              ulid PRIMARY KEY,
             parent_id       ulid REFERENCES subject.%I(id),
             user_id ulid REFERENCES auth.user(id) NOT NULL,
-            text            TEXT NOT NULL,
+            content            TEXT NOT NULL,
             created_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )',
